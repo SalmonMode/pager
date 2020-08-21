@@ -2,9 +2,6 @@ from uuid import uuid4
 
 import pytest
 
-from src.utils.pages import LoginPage, ChatPage
-from src.utils.ws_client import ChatClient
-
 
 class TestTyping:
 
