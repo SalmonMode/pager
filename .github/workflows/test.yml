@@ -29,4 +29,4 @@ jobs:
       with:
         python_version: 3.8.0
         poetry_version: 1.0
-        args: run python -m pytest -v tests/
+        args: run python -m pytest
