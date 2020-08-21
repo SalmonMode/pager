@@ -1,10 +1,11 @@
+from datetime import datetime
 import json
 import random
 import re
 import string
 import threading
 from time import time, sleep
-from typing import Any, List, Mapping, Tuple, Callable, Dict
+from typing import Any, List, Mapping, Tuple, Union, Callable, Dict
 from urllib.parse import urljoin, urlencode
 
 from requests import Session
@@ -12,6 +13,7 @@ import websocket
 
 from src.utils.types import MessageType, MessageConsumer, Username, IsTyping, MessageData
 from src.utils.message import TextMessage, ImageMessage
+from src.utils.giphy import get_random_giphy
 
 
 class WebSocketClient:
@@ -181,6 +183,16 @@ class ChatClient:
 
     def send_not_typing(self):
         self._ws_client.send(["typing", False])
+
+    def send_message(self, message: Union[TextMessage, ImageMessage]):
+        self._ws_client.send(message.simplify())
+
+    def get_random_gif_message(self, search_text: str) -> ImageMessage:
+        giphy = get_random_giphy(search_text)
+        return ImageMessage(username=self.username, time=datetime.now(), url=giphy["data"]["image_url"], alt=giphy["data"]["title"])
+
+    def get_text_message(self, text: str) -> TextMessage:
+        return TextMessage(username=self.username, time=datetime.now(), text=text)
 
     @staticmethod
     def get_deserialized_authentication_response(message: str) -> List[Any]:
