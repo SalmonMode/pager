@@ -1,5 +1,27 @@
+from uuid import uuid4
+
 import pytest
 from selenium import webdriver
+
+from src.utils.pages import LoginPage, ChatPage
+from src.utils.ws_client import ChatClient
+
+
+@pytest.fixture(scope="class")
+def client_username():
+    return str(uuid4())
+
+
+@pytest.fixture(scope="class")
+def chat_client(client_username, page):
+    client = ChatClient("https://pager-qa-hiring.herokuapp.com/", client_username)
+    yield client
+    client.kill()
+
+
+@pytest.fixture(scope="class")
+def username():
+    return str(uuid4())
 
 
 @pytest.fixture(scope="class")
@@ -8,3 +30,19 @@ def driver():
     _driver = webdriver.Remote(options=opts)
     yield _driver
     _driver.quit()
+
+
+@pytest.fixture(scope="class")
+def login_page(driver):
+    driver.get("https://pager-qa-hiring.herokuapp.com/#/chat")
+    return LoginPage(driver)
+
+
+@pytest.fixture(scope="class", autouse=True)
+def login(login_page, driver, username):
+    login_page.login(username)
+
+
+@pytest.fixture(scope="class", autouse=True)
+def page(login, driver):
+    return ChatPage(driver)
