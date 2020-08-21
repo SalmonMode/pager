@@ -1,15 +1,16 @@
-import asyncio
 import json
 import random
 import re
 import string
+import threading
+from time import time, sleep
 from typing import Any, List, Mapping, Tuple, Callable, Dict
 from urllib.parse import urljoin, urlencode
 
 from requests import Session
-import websockets
+import websocket
 
-from src.utils.types import *
+from src.utils.types import MessageType, MessageConsumer, Username, IsTyping, MessageData
 from src.utils.message import TextMessage, ImageMessage
 
 
@@ -20,8 +21,8 @@ class WebSocketClient:
         self.username = username
         query = {
             "username": self.username,
-            "transport": "websocket",
             "EIO": 3,
+            "transport": "websocket",
             "sid": self._sid,
         }
         self._uri = urljoin(url.replace("http", "ws"), f"/socket.io/?{urlencode(query)}")
@@ -29,22 +30,42 @@ class WebSocketClient:
         self._consumers = {}
         for message_type, consumer_callback in consumers.items():
             self.register_consumer(message_type, consumer_callback)
+        self._start_connection()
 
-    async def _incoming_message_handler(self):
-        async for message in self._ws:
-            msg = WebSocketClient.get_deserialized_authentication_response(message)
-            if msg:
-                self._consume(msg)
+    def _incoming_message_handler(self, message):
+        msg = WebSocketClient.get_deserialized_incoming_message(message)
+        if msg:
+            self._consume(msg)
 
-    async def _start_connection(self):
+    def _start_connection(self):
         self._keep_alive = True
-        async with websockets.connect(self._uri) as ws:
-            self._ws = ws
-            while self._keep_alive:
-                await asyncio.sleep(0.001) # put a nominal delay forcing this to wait in event loop
+        self._ws = websocket.WebSocketApp(
+            self._uri,
+            on_message=self._incoming_message_handler,
+        )
+        self._client_thread = threading.Thread(target=self._ws.run_forever)
+        self._client_thread.start()
+        timeout = time() + 2
+        while time() <= timeout:
+            if self._ws.sock.connected:
+                break
+        else:
+            raise Exception("never connected")
+        # probe request
+        self._ws.send("2probe")
+        # apparent followup to probe request
+        self._ws.send("5")
 
     def kill(self):
-        self._keep_alive = False
+        self._ws.close()
+        self._client_thread.join()
+
+    def send(self, message):
+        # the 42 prefixes every message except handshake probe
+        self._ws.send(f"42{json.dumps(message)}")
+        # suspend thread so others have a chance to process messages they may have
+        # received as a result of this message being sent
+        sleep(0.1)
 
     def register_consumer(self, message_type: MessageType, callback: MessageConsumer):
         """Register a specific callback for an associated message type.
@@ -65,9 +86,12 @@ class WebSocketClient:
         consumer(message_data)
 
     @staticmethod
-    def get_deserialized_authentication_response(message: str) -> Dict:
+    def get_deserialized_incoming_message(message: str) -> Dict:
         """Returns the cleaned up and deserialized message."""
-        return json.loads(message.strip(string.digits + ":"))
+        try:
+            return json.loads(message.strip(string.digits + ":"))
+        except json.decoder.JSONDecodeError:
+            return None
 
 
 class ChatClient:
@@ -75,7 +99,7 @@ class ChatClient:
         self._url = url
         self.username = username
         self._sid = None
-        self._active_typers = []
+        self.active_typers = []
         self._chat_history = []
         self._session = Session()
         self.authenticate()
@@ -84,7 +108,12 @@ class ChatClient:
             "message": self.consume_incoming_message,
             "is-typing": self.consume_typing_update,
         }
-        self._ws = WebSocketClient(self._url, self._sid, self.username, **consumers)
+        self._ws_client = WebSocketClient(self._url, self._sid, self.username, **consumers)
+
+    def kill(self):
+        if self.username in self.active_typers:
+            self.send_not_typing()
+        self._ws_client.kill()
 
     def authenticate(self):
         query = {
@@ -106,14 +135,14 @@ class ChatClient:
         down to which members of that dictionary have a value of ``True``. Only members that
         have a value of ``True`` are used to overwrite the contents of the active typers list.
 
-        Simply calling ``self._active_typers = []`` again would create a new list, which could
+        Simply calling ``self.active_typers = []`` again would create a new list, which could
         cause problems. Instead, the contents of the list are wiped out so that anything else
         that has a reference to the list can retain that reference and use it to always have
         an up to date reference. This may also become relevant in the future if a lock is
         needed due to the asynchronous nature of the code.
         """
-        del self._active_typers[:]
-        self._active_typers.extend([username for username, is_typing in data if is_typing])
+        del self.active_typers[:]
+        self.active_typers.extend([username for username, is_typing in data.items() if is_typing])
 
     def update_chat_history(self):
         del self._chat_history[:]
@@ -128,7 +157,7 @@ class ChatClient:
         data = ChatClient.get_deserialized_polling_message(response.text)
         # The last message is always just an message about the current user connecting
         for message in data[:-1]:
-            self.consume_incoming_message(message)
+            self.consume_incoming_message(message[-1])
 
     @property
     def connected_users(self) -> List[Username]:
@@ -143,6 +172,15 @@ class ChatClient:
             self._chat_history.append(ImageMessage(**message))
         else:
             raise TypeError(f"Unknown message type: {message['type']}")
+
+    def handle_close(self, *args, **kwargs):
+        self.send_not_typing()
+
+    def send_typing(self):
+        self._ws_client.send(["typing", True])
+
+    def send_not_typing(self):
+        self._ws_client.send(["typing", False])
 
     @staticmethod
     def get_deserialized_authentication_response(message: str) -> List[Any]:

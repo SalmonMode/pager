@@ -12,10 +12,12 @@ def username():
 
 @pytest.fixture
 def chat_client(username):
-    return ChatClient("https://pager-qa-hiring.herokuapp.com/", username)
+    client = ChatClient("https://pager-qa-hiring.herokuapp.com/", username)
+    yield client
+    client.kill()
 
 
-# has no means of resetting state of chat room, so it will always fail
+# has no means of resetting state of chat room, so it will almost always fail
 @pytest.mark.refined
 def test_user_is_connected(chat_client, username):
     assert chat_client.connected_users == [username]
