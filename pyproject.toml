@@ -1,12 +1,18 @@
 [tool.poetry]
-name = "poetry"
+name = "pager"
 version = "0.1.0"
 description = ""
 authors = ["Chris NeJame <chris.t.nejame@gmail.com>"]
 
+packages = [
+    { include = "src" }
+]
+
 [tool.poetry.dependencies]
 python = "^3.8"
 pytest = "^6.0.1"
+websockets = "^8.1"
+requests = "^2.24.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "~6.0"
