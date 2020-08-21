@@ -7,6 +7,11 @@ from src.utils.pages import LoginPage, ChatPage
 from src.utils.ws_client import ChatClient
 
 
+def pytest_collection_modifyitems(items):
+    for item in items:
+        item.add_marker(pytest.mark.unrefined)
+
+
 @pytest.fixture(scope="class")
 def client_username():
     return str(uuid4())
