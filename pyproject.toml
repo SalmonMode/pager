@@ -11,8 +11,8 @@ packages = [
 [tool.poetry.dependencies]
 python = "^3.8"
 pytest = "^6.0.1"
-websockets = "^8.1"
 requests = "^2.24.0"
+websocket-client = "^0.57.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "~6.0"
