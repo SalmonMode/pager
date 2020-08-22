@@ -49,6 +49,8 @@ In general, I had the following motivations:
   tied to them, and are to only used as a means of introspection the resulting
   state in order to evaluate whether or not its as expected.
 
+I also tried to follow the Law of Demeter for the most part.
+
 Some tests were marked with `refined` while others were marked with `unrefined`.
 Those marked as `refined` were fairly lean and fairly strict with their pass
 conditions, even though they could probably be optimized much further. But those
@@ -56,7 +58,8 @@ marked as `unrefined` made excuses so they could pass and involved far more than
 they needed to to test the core behavior they were meant to (browsers are
 incredibly expensive).
 
-I also tried to follow the Law of Demeter for the most part.
+The GitHub Actions flow splits them into 2 separate jobs, which will be useful
+if they should be compared.
 
 Regarding the style and structure of my tests, a comprehensive writeup for why
 exactly I laid them out this way can be found
