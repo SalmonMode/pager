@@ -49,12 +49,20 @@ In general, I had the following motivations:
   tied to them, and are to only used as a means of introspection the resulting
   state in order to evaluate whether or not its as expected.
 
+Some tests were marked with `refined` while others were marked with `unrefined`.
+Those marked as `refined` were fairly lean and fairly strict with their pass
+conditions, even though they could probably be optimized much further. But those
+marked as `unrefined` made excuses so they could pass and involved far more than
+they needed to to test the core behavior they were meant to (browsers are
+incredibly expensive).
+
 I also tried to follow the Law of Demeter for the most part.
 
 Regarding the style and structure of my tests, a comprehensive writeup for why
 exactly I laid them out this way can be found
-[here](https://salmonmode.github.io/2019/03/29/building-good-tests.html). Pytest
-specifically was used because of it's incredibly powerful fixture system.
+[here](https://salmonmode.github.io/2019/03/29/building-good-tests.html).
+
+Pytest specifically was used because of it's incredibly powerful fixture system.
 
 A docker-compose file was not included because the above docker command and
 subsequent poetry commands are all that is necessary to run this, so the
