@@ -53,7 +53,7 @@ I also tried to follow the Law of Demeter for the most part.
 
 Some tests were marked with `refined` while others were marked with `unrefined`.
 Those marked as `refined` were fairly lean and fairly strict with their pass
-conditions, even though they could probably be optimized much further. But those
+conditions (and as a result, most fail), even though they could probably be optimized much further. But those
 marked as `unrefined` made excuses so they could pass and involved far more than
 they needed to to test the core behavior they were meant to (browsers are
 incredibly expensive).
