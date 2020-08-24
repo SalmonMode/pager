@@ -24,6 +24,8 @@ jobs:
 
     - name: Run pytest
       uses: abatilo/actions-poetry@v1.5.0
+      env:
+          TZ: America/New_York
       with:
         python_version: 3.8.0
         poetry_version: 1.0
@@ -31,13 +33,18 @@ jobs:
   test_unrefined:
     name: Unrefined tests
     runs-on: ubuntu-latest
-
+    services:
+      selenium-chrome:
+        image: selenium/standalone-chrome:4.0.0-alpha-6-20200730
+        volumes: 
+          - /dev/shm:/dev/shm
+        ports: 
+          - 4444:4444
+        env:
+          TZ: America/New_York
     steps:
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
     - uses: actions/checkout@v2
-
-    - name: Zalenium Server
-      uses: ajinx/zalenium@1.1
 
     - name: Install
       uses: abatilo/actions-poetry@v1.5.0
@@ -46,11 +53,13 @@ jobs:
         poetry_version: 1.0
         args: install
 
-    - name: is zalenium started?
+    - name: is selenium server started?
       run: curl http://localhost:4444/status
 
     - name: Run pytest
       uses: abatilo/actions-poetry@v1.5.0
+      env:
+          TZ: America/New_York
       with:
         python_version: 3.8.0
         poetry_version: 1.0
