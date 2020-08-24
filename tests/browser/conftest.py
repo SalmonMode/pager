@@ -1,3 +1,4 @@
+import os
 from uuid import uuid4
 
 import pytest
@@ -31,8 +32,11 @@ def username():
 
 @pytest.fixture(scope="class")
 def driver():
+    host = os.environ.get("SELENIUM_HOST", "localhost")
+    port = os.environ.get("SELENIUM_PORT", "4444")
+    command_executor=f"http://{host}:{port}/wd/hub"
     opts = webdriver.ChromeOptions()
-    _driver = webdriver.Remote(options=opts)
+    _driver = webdriver.Remote(command_executor=f"http://{host}:{port}/wd/hub", options=opts)
     yield _driver
     _driver.quit()
 

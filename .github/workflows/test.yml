@@ -36,9 +36,9 @@ jobs:
     services:
       selenium-chrome:
         image: selenium/standalone-chrome:4.0.0-alpha-6-20200730
-        volumes: 
+        volumes:
           - /dev/shm:/dev/shm
-        ports: 
+        ports:
           - 4444:4444
         env:
           TZ: America/New_York
@@ -59,6 +59,8 @@ jobs:
     - name: Run pytest
       uses: abatilo/actions-poetry@v1.5.0
       env:
+          SELENIUM_HOST: selenium-chrome
+          SELENIUM_PORT: 4444
           TZ: America/New_York
       with:
         python_version: 3.8.0
